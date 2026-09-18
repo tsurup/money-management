@@ -34,6 +34,16 @@ export default function LogsClient({ initialLogs, actions, balance }: Props) {
   const [editTarget, setEditTarget] = useState<LogRecord | null>(null)
   const [filterType, setFilterType] = useState<'all' | 'save' | 'spend'>('all')
   const [error, setError] = useState<string | null>(null)
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+
+  function toggleGroup(key: string) {
+    setExpandedGroups(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   function flash(msg: string) { setError(msg); setTimeout(() => setError(null), 3000) }
 
@@ -58,6 +68,41 @@ export default function LogsClient({ initialLogs, actions, balance }: Props) {
   }
 
   const filtered = filterType === 'all' ? initialLogs : initialLogs.filter((l) => l.type === filterType)
+
+  const groupedLogs: {
+    key: string
+    dateStr: string
+    action_id: string | null
+    actions: { name: string } | null
+    type: 'save' | 'spend'
+    totalAmount: number
+    logs: LogRecord[]
+  }[] = []
+  const groupMap = new Map<string, typeof groupedLogs[0]>()
+
+  for (const log of filtered) {
+    const d = new Date(log.executed_at)
+    const dateStr = d.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })
+    const dateKey = d.toLocaleDateString('sv-SE') // YYYY-MM-DD
+    const key = `${dateKey}_${log.action_id ?? 'null'}`
+    
+    if (!groupMap.has(key)) {
+      const newGroup = {
+        key,
+        dateStr,
+        action_id: log.action_id,
+        actions: log.actions ?? null,
+        type: log.type,
+        totalAmount: 0,
+        logs: []
+      }
+      groupMap.set(key, newGroup)
+      groupedLogs.push(newGroup)
+    }
+    const group = groupMap.get(key)!
+    group.totalAmount += log.amount
+    group.logs.push(log)
+  }
 
   return (
     <div className="space-y-4">
@@ -134,33 +179,75 @@ export default function LogsClient({ initialLogs, actions, balance }: Props) {
           </span>
         </div>
 
-        {filtered.length === 0 ? (
+        {groupedLogs.length === 0 ? (
           <p className="text-gray-500 text-sm">記録がありません</p>
         ) : (
           <ul className="space-y-3">
-            {filtered.map((log) => (
-              <li key={log.id} className="flex items-start justify-between py-3 border-b border-gray-800 last:border-0 gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className={log.type === 'save' ? 'badge-save' : 'badge-spend'}>
-                    {log.type === 'save' ? '貯める' : '使う'}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-gray-200 text-sm font-medium truncate">{log.actions?.name ?? '削除済み項目'}</p>
-                    {log.memo && <p className="text-xs text-gray-500">{log.memo}</p>}
-                    <p className="text-xs text-gray-600 mt-0.5">
-                      {new Date(log.executed_at).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                    </p>
+            {groupedLogs.map((group) => {
+              const isExpanded = expandedGroups.has(group.key)
+              return (
+                <li key={group.key} className="py-3 border-b border-gray-800 last:border-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className={group.type === 'save' ? 'badge-save' : 'badge-spend'}>
+                        {group.type === 'save' ? '貯める' : '使う'}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-gray-200 text-sm font-medium truncate">{group.actions?.name ?? '削除済み項目'}</p>
+                          {group.logs.length > 1 && (
+                            <span className="bg-gray-800 text-gray-400 text-xs px-2 py-0.5 rounded-full">
+                              x{group.logs.length}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-600 mt-0.5">{group.dateStr}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`font-bold ${group.type === 'save' ? 'text-green-400' : 'text-red-400'}`}>
+                        {group.type === 'save' ? '+' : '-'}{group.totalAmount.toLocaleString()}円
+                      </span>
+                      {group.logs.length > 1 ? (
+                        <button
+                          onClick={() => toggleGroup(group.key)}
+                          className="text-gray-400 hover:text-white text-xs px-2 py-1 rounded-lg hover:bg-gray-800"
+                        >
+                          {isExpanded ? '閉じる' : '詳細'}
+                        </button>
+                      ) : (
+                        <>
+                          <button onClick={() => { setEditTarget(group.logs[0]); setShowForm(true) }} className="text-gray-400 hover:text-white text-xs px-2 py-1 rounded-lg hover:bg-gray-800">編集</button>
+                          <button onClick={() => handleDelete(group.logs[0].id)} disabled={isPending} className="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded-lg hover:bg-red-500/10">削除</button>
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className={`font-bold ${log.type === 'save' ? 'text-green-400' : 'text-red-400'}`}>
-                    {log.type === 'save' ? '+' : '-'}{log.amount.toLocaleString()}円
-                  </span>
-                  <button onClick={() => { setEditTarget(log); setShowForm(true) }} className="text-gray-400 hover:text-white text-xs px-2 py-1 rounded-lg hover:bg-gray-800">編集</button>
-                  <button onClick={() => handleDelete(log.id)} disabled={isPending} className="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded-lg hover:bg-red-500/10">削除</button>
-                </div>
-              </li>
-            ))}
+                  
+                  {isExpanded && group.logs.length > 1 && (
+                    <div className="mt-3 pl-14 space-y-2">
+                      {group.logs.map(log => (
+                        <div key={log.id} className="flex items-center justify-between py-2 border-t border-gray-800/50">
+                          <div className="min-w-0">
+                            <p className="text-xs text-gray-400">
+                              {new Date(log.executed_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                            {log.memo && <p className="text-xs text-gray-500 truncate">{log.memo}</p>}
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className={`text-sm ${log.type === 'save' ? 'text-green-400/70' : 'text-red-400/70'}`}>
+                              {log.type === 'save' ? '+' : '-'}{log.amount.toLocaleString()}円
+                            </span>
+                            <button onClick={() => { setEditTarget(log); setShowForm(true) }} className="text-gray-500 hover:text-white text-xs px-2 py-1 rounded hover:bg-gray-800">編集</button>
+                            <button onClick={() => handleDelete(log.id)} disabled={isPending} className="text-red-400/70 hover:text-red-300 text-xs px-2 py-1 rounded hover:bg-red-500/10">削除</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>
