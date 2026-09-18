@@ -1,10 +1,12 @@
 import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
 
-const SESSION_SECRET = process.env.SESSION_SECRET!
-if (!SESSION_SECRET) throw new Error('Missing SESSION_SECRET environment variable')
+function getSecret() {
+  const secret = process.env.SESSION_SECRET
+  if (!secret) throw new Error('Missing SESSION_SECRET environment variable')
+  return new TextEncoder().encode(secret)
+}
 
-const secret = new TextEncoder().encode(SESSION_SECRET)
 const COOKIE_NAME = 'session'
 const EXPIRY = '14d'
 
@@ -18,12 +20,12 @@ export async function createSession(payload: SessionPayload): Promise<string> {
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(EXPIRY)
-    .sign(secret)
+    .sign(getSecret())
 }
 
 export async function verifySession(token: string): Promise<SessionPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, secret)
+    const { payload } = await jwtVerify(token, getSecret())
     return payload as unknown as SessionPayload
   } catch {
     return null

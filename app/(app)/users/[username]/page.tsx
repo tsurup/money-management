@@ -20,6 +20,31 @@ export default async function UserPage({ params }: Props) {
   const saved = logs?.filter((l) => l.type === 'save').reduce((s, l) => s + l.amount, 0) ?? 0
   const spent = logs?.filter((l) => l.type === 'spend').reduce((s, l) => s + l.amount, 0) ?? 0
 
+  const groupedLogs: any[] = []
+  const groupMap = new Map<string, any>()
+  for (const log of (logs ?? [])) {
+    const d = new Date(log.executed_at)
+    const dateStr = d.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })
+    const dateKey = d.toLocaleDateString('sv-SE')
+    const key = `${dateKey}_${log.action_id ?? 'null'}`
+
+    if (!groupMap.has(key)) {
+      const newGroup = {
+        key,
+        dateStr,
+        actions: log.actions ?? null,
+        type: log.type,
+        totalAmount: 0,
+        logs: []
+      }
+      groupMap.set(key, newGroup)
+      groupedLogs.push(newGroup)
+    }
+    const group = groupMap.get(key)
+    group.totalAmount += log.amount
+    group.logs.push(log)
+  }
+
   return (
     <div className="space-y-6 animate-fade-in-up max-w-2xl">
       {/* ユーザーヘッダー */}
@@ -58,24 +83,50 @@ export default async function UserPage({ params }: Props) {
       {/* ログ一覧 */}
       <div className="card">
         <h2 className="text-lg font-semibold text-white mb-4">記録一覧</h2>
-        {!logs || logs.length === 0 ? (
+        {!logs || groupedLogs.length === 0 ? (
           <p className="text-gray-500 text-sm">記録がありません</p>
         ) : (
           <ul className="space-y-3">
-            {logs.map((log) => (
-              <li key={log.id} className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0">
-                <div className="flex items-center gap-3">
-                  <span className={log.type === 'save' ? 'badge-save' : 'badge-spend'}>
-                    {log.type === 'save' ? '貯める' : '使う'}
-                  </span>
-                  <div>
-                    <p className="text-gray-300 text-sm">{log.actions?.name ?? '削除済み'}</p>
-                    <p className="text-xs text-gray-600">{new Date(log.executed_at).toLocaleDateString('ja-JP')}</p>
-                  </div>
-                </div>
-                <span className={`font-bold text-sm ${log.type === 'save' ? 'text-green-400' : 'text-red-400'}`}>
-                  {log.type === 'save' ? '+' : '-'}{log.amount.toLocaleString()}円
-                </span>
+            {groupedLogs.map((group) => (
+              <li key={group.key} className="py-2 border-b border-gray-800 last:border-0">
+                <details className="group marker:content-[''] [&_summary::-webkit-details-marker]:hidden">
+                  <summary className="flex items-center justify-between cursor-pointer list-none">
+                    <div className="flex items-center gap-3">
+                      <span className={group.type === 'save' ? 'badge-save' : 'badge-spend'}>
+                        {group.type === 'save' ? '貯める' : '使う'}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-300 text-sm">{group.actions?.name ?? '削除済み'}</span>
+                        {group.logs.length > 1 && (
+                          <span className="bg-gray-800 text-gray-400 text-[10px] px-1.5 py-0.5 rounded-full">
+                            x{group.logs.length}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className={`font-bold text-sm ${group.type === 'save' ? 'text-green-400' : 'text-red-400'}`}>
+                        {group.type === 'save' ? '+' : '-'}{group.totalAmount.toLocaleString()}円
+                      </span>
+                      <p className="text-xs text-gray-600 mt-0.5">{group.dateStr}</p>
+                    </div>
+                  </summary>
+                  
+                  {group.logs.length > 1 && (
+                    <div className="mt-3 pl-12 space-y-2 border-l-2 border-gray-800 ml-4">
+                      {group.logs.map((log: any) => (
+                        <div key={log.id} className="flex justify-between items-center text-sm">
+                          <span className="text-gray-500">
+                            {new Date(log.executed_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          <span className={`font-medium ${log.type === 'save' ? 'text-green-400/70' : 'text-red-400/70'}`}>
+                            {log.type === 'save' ? '+' : '-'}{log.amount.toLocaleString()}円
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </details>
               </li>
             ))}
           </ul>
