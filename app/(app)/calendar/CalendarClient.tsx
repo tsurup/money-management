@@ -16,16 +16,6 @@ interface LogRecord {
 
 export default function CalendarClient({ logs }: { logs: LogRecord[] }) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
-
-  function toggleGroup(key: string) {
-    setExpandedGroups(prev => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
-  }
 
   // 日付ごとのログマップ
   const logsByDate = logs.reduce<Record<string, LogRecord[]>>((acc, log) => {
@@ -36,36 +26,6 @@ export default function CalendarClient({ logs }: { logs: LogRecord[] }) {
 
   const selectedKey = selectedDate?.toLocaleDateString('sv-SE')
   const selectedLogs = selectedKey ? (logsByDate[selectedKey] ?? []) : []
-
-  // グループ化
-  const groupedLogs: {
-    key: string
-    action_id: string | null
-    actions: { name: string } | null
-    type: 'save' | 'spend'
-    totalAmount: number
-    logs: LogRecord[]
-  }[] = []
-  const groupMap = new Map<string, typeof groupedLogs[0]>()
-
-  for (const log of selectedLogs) {
-    const key = log.action_id ?? 'null'
-    if (!groupMap.has(key)) {
-      const newGroup = {
-        key,
-        action_id: log.action_id,
-        actions: log.actions,
-        type: log.type,
-        totalAmount: 0,
-        logs: []
-      }
-      groupMap.set(key, newGroup)
-      groupedLogs.push(newGroup)
-    }
-    const group = groupMap.get(key)!
-    group.totalAmount += log.amount
-    group.logs.push(log)
-  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -125,59 +85,23 @@ export default function CalendarClient({ logs }: { logs: LogRecord[] }) {
             <h3 className="text-lg font-semibold text-white mb-4">
               {selectedDate.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
             </h3>
-            {groupedLogs.length === 0 ? (
+            {selectedLogs.length === 0 ? (
               <p className="text-gray-500 text-sm">この日の記録はありません</p>
             ) : (
               <ul className="space-y-3">
-                {groupedLogs.map((group) => {
-                  const isExpanded = expandedGroups.has(group.key)
-                  return (
-                    <li key={group.key} className="py-2 border-b border-gray-800 last:border-0">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className={group.type === 'save' ? 'badge-save' : 'badge-spend'}>
-                            {group.type === 'save' ? '貯める' : '使う'}
-                          </span>
-                          <span className="text-gray-300 text-sm">{group.actions?.name ?? '削除済み'}</span>
-                          {group.logs.length > 1 && (
-                            <span className="bg-gray-800 text-gray-400 text-xs px-2 py-0.5 rounded-full">
-                              x{group.logs.length}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className={`font-bold text-sm ${group.type === 'save' ? 'text-green-400' : 'text-red-400'}`}>
-                            {group.type === 'save' ? '+' : '-'}{group.totalAmount.toLocaleString()}円
-                          </span>
-                          {group.logs.length > 1 && (
-                            <button
-                              onClick={() => toggleGroup(group.key)}
-                              className="text-gray-400 hover:text-white text-xs px-2 py-1 rounded hover:bg-gray-800"
-                            >
-                              {isExpanded ? '閉じる' : '詳細'}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {isExpanded && group.logs.length > 1 && (
-                        <div className="mt-3 pl-4 border-l-2 border-gray-800 space-y-2">
-                          {group.logs.map(log => (
-                            <div key={log.id} className="flex justify-between items-center text-sm">
-                              <div className="text-gray-400">
-                                <span>{new Date(log.executed_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}</span>
-                                {log.memo && <span className="ml-2 text-gray-500">- {log.memo}</span>}
-                              </div>
-                              <span className={log.type === 'save' ? 'text-green-400/70' : 'text-red-400/70'}>
-                                {log.type === 'save' ? '+' : '-'}{log.amount.toLocaleString()}円
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </li>
-                  )
-                })}
+                {selectedLogs.map((log) => (
+                  <li key={log.id} className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0">
+                    <div className="flex items-center gap-2">
+                      <span className={log.type === 'save' ? 'badge-save' : 'badge-spend'}>
+                        {log.type === 'save' ? '貯める' : '使う'}
+                      </span>
+                      <span className="text-gray-300 text-sm">{log.actions?.name ?? '削除済み'}</span>
+                    </div>
+                    <span className={`font-bold text-sm ${log.type === 'save' ? 'text-green-400' : 'text-red-400'}`}>
+                      {log.type === 'save' ? '+' : '-'}{log.amount.toLocaleString()}円
+                    </span>
+                  </li>
+                ))}
                 <li className="pt-2 flex justify-between text-sm font-semibold">
                   <span className="text-gray-400">この日の収支</span>
                   <span className={
