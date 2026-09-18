@@ -59,6 +59,41 @@ export default function LogsClient({ initialLogs, actions, balance }: Props) {
 
   const filtered = filterType === 'all' ? initialLogs : initialLogs.filter((l) => l.type === filterType)
 
+  const groupedLogs: {
+    key: string
+    dateStr: string
+    action_id: string | null
+    actions: { name: string } | null
+    type: 'save' | 'spend'
+    totalAmount: number
+    logs: LogRecord[]
+  }[] = []
+  const groupMap = new Map<string, typeof groupedLogs[0]>()
+
+  for (const log of filtered) {
+    const d = new Date(log.executed_at)
+    const dateStr = d.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })
+    const dateKey = d.toLocaleDateString('sv-SE') // YYYY-MM-DD
+    const key = `${dateKey}_${log.action_id ?? 'null'}`
+    
+    if (!groupMap.has(key)) {
+      const newGroup = {
+        key,
+        dateStr,
+        action_id: log.action_id,
+        actions: log.actions ?? null,
+        type: log.type,
+        totalAmount: 0,
+        logs: []
+      }
+      groupMap.set(key, newGroup)
+      groupedLogs.push(newGroup)
+    }
+    const group = groupMap.get(key)!
+    group.totalAmount += log.amount
+    group.logs.push(log)
+  }
+
   return (
     <div className="space-y-4">
       {error && <div className="bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl px-4 py-3 text-sm">{error}</div>}
