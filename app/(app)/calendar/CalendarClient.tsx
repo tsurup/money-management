@@ -27,36 +27,6 @@ export default function CalendarClient({ logs }: { logs: LogRecord[] }) {
   const selectedKey = selectedDate?.toLocaleDateString('sv-SE')
   const selectedLogs = selectedKey ? (logsByDate[selectedKey] ?? []) : []
 
-  // グループ化
-  const groupedLogs: {
-    key: string
-    action_id: string | null
-    actions: { name: string } | null
-    type: 'save' | 'spend'
-    totalAmount: number
-    logs: LogRecord[]
-  }[] = []
-  const groupMap = new Map<string, typeof groupedLogs[0]>()
-
-  for (const log of selectedLogs) {
-    const key = log.action_id ?? 'null'
-    if (!groupMap.has(key)) {
-      const newGroup = {
-        key,
-        action_id: log.action_id,
-        actions: log.actions ?? null,
-        type: log.type,
-        totalAmount: 0,
-        logs: []
-      }
-      groupMap.set(key, newGroup)
-      groupedLogs.push(newGroup)
-    }
-    const group = groupMap.get(key)!
-    group.totalAmount += log.amount
-    group.logs.push(log)
-  }
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* カレンダー */}
