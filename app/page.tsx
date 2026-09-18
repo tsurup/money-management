@@ -32,28 +32,31 @@ export default async function DashboardPage() {
             <p className="text-gray-500 mt-1">こんにちは、{session.username} さん</p>
           </div>
 
-          <div className="card animate-pulse-glow bg-gradient-to-br from-violet-900/40 to-gray-900 border-violet-500/30">
-            <p className="text-gray-400 text-sm font-medium">現在の残高</p>
-            <p className={`text-5xl font-bold mt-2 ${balance >= 0 ? 'text-violet-300' : 'text-red-400'}`}>
-              {balance >= 0 ? '+' : ''}{balance.toLocaleString()}
-              <span className="text-2xl ml-1 text-gray-400">円</span>
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="card border-green-500/20">
-              <p className="text-gray-400 text-sm">今月の貯め合計</p>
-              <p className="text-2xl font-bold text-green-400 mt-1">+{summary.saved.toLocaleString()}円</p>
+          <div className="card bg-gradient-to-br from-violet-900/30 to-gray-900 border-violet-500/30">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-gray-800/50 pb-6 mb-6">
+              <div>
+                <p className="text-gray-400 text-sm font-medium">現在の残高</p>
+                <p className={`text-5xl font-bold mt-2 ${balance >= 0 ? 'text-violet-300' : 'text-red-400'}`}>
+                  {balance >= 0 ? '+' : ''}{balance.toLocaleString()}
+                  <span className="text-2xl ml-1 text-gray-400">円</span>
+                </p>
+              </div>
+              <div className="flex gap-4">
+                <div className="bg-gray-900/50 px-4 py-3 rounded-2xl border border-green-500/20 flex-1 md:flex-none">
+                  <p className="text-gray-500 text-xs">今月の貯め</p>
+                  <p className="text-xl font-bold text-green-400 mt-0.5">+{summary.saved.toLocaleString()}円</p>
+                </div>
+                <div className="bg-gray-900/50 px-4 py-3 rounded-2xl border border-red-500/20 flex-1 md:flex-none">
+                  <p className="text-gray-500 text-xs">今月の使い</p>
+                  <p className="text-xl font-bold text-red-400 mt-0.5">-{summary.spent.toLocaleString()}円</p>
+                </div>
+              </div>
             </div>
-            <div className="card border-red-500/20">
-              <p className="text-gray-400 text-sm">今月の使い合計</p>
-              <p className="text-2xl font-bold text-red-400 mt-1">-{summary.spent.toLocaleString()}円</p>
-            </div>
-          </div>
 
-          <div className="card">
-            <h2 className="text-lg font-semibold text-white mb-4">クイック実行</h2>
-            <QuickLog actions={actions} />
+            <div>
+              <h2 className="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wide">クイック実行</h2>
+              <QuickLog actions={actions} />
+            </div>
           </div>
 
           <div className="card">

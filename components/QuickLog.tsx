@@ -16,21 +16,13 @@ export default function QuickLog({ actions }: { actions: Action[] }) {
   const [isPending, startTransition] = useTransition()
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null)
 
-  // 日本時間の現在時刻をデフォルト値として取得 (YYYY-MM-DDTHH:mm)
-  const getLocalNow = () => {
-    const d = new Date()
-    d.setMinutes(d.getMinutes() - d.getTimezoneOffset())
-    return d.toISOString().slice(0, 16)
-  }
-  const [executedAt, setExecutedAt] = useState(getLocalNow())
-
   const saveActions = actions.filter((a) => a.type === 'save')
   const spendActions = actions.filter((a) => a.type === 'spend')
 
   async function handleQuickLog(actionId: string) {
     const fd = new FormData()
     fd.append('action_id', actionId)
-    fd.append('executed_at', new Date(executedAt).toISOString())
+    fd.append('executed_at', new Date().toISOString())
     startTransition(async () => {
       const res = await createLog(fd)
       if ('error' in res && res.error) {
@@ -58,16 +50,6 @@ export default function QuickLog({ actions }: { actions: Action[] }) {
           {message.text}
         </div>
       )}
-
-      <div>
-        <label className="text-xs text-gray-500 mb-1 font-medium block">日時設定</label>
-        <input
-          type="datetime-local"
-          value={executedAt}
-          onChange={(e) => setExecutedAt(e.target.value)}
-          className="input text-sm py-1.5 px-3 max-w-[220px]"
-        />
-      </div>
 
       {saveActions.length > 0 && (
         <div>
