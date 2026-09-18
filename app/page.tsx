@@ -25,7 +25,7 @@ export default async function DashboardPage() {
   return (
     <div className="flex min-h-screen">
       <Navbar username={session.username} />
-      <main className="flex-1 ml-56 p-8">
+      <main className="flex-1 pt-14 pb-16 md:pt-0 md:pb-0 md:ml-56 p-4 md:p-8">
         <div className="space-y-8 animate-fade-in-up max-w-3xl">
           <div>
             <h1 className="text-3xl font-bold text-white">ダッシュボード</h1>
@@ -40,7 +40,7 @@ export default async function DashboardPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="card border-green-500/20">
               <p className="text-gray-400 text-sm">今月の貯め合計</p>
               <p className="text-2xl font-bold text-green-400 mt-1">+{summary.saved.toLocaleString()}円</p>

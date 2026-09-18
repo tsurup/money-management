@@ -44,7 +44,7 @@ export default async function UserPage({ params }: Props) {
       </div>
 
       {/* サマリー */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="card border-green-500/20">
           <p className="text-gray-400 text-sm">合計貯め</p>
           <p className="text-xl font-bold text-green-400 mt-1">+{saved.toLocaleString()}円</p>

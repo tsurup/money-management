@@ -74,7 +74,7 @@ export default function ActionsClient({ initialActions }: { initialActions: Acti
               <label className="label" htmlFor="action-name">項目名 *</label>
               <input id="action-name" name="name" required defaultValue={editTarget?.name} placeholder="例: ジョギングした" className="input" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="label" htmlFor="action-type">種別 *</label>
                 <select id="action-type" name="type" defaultValue={editTarget?.type ?? 'save'} className="input">
