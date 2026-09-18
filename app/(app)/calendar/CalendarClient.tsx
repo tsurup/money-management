@@ -54,7 +54,7 @@ export default function CalendarClient({ logs }: { logs: LogRecord[] }) {
       const newGroup = {
         key,
         action_id: log.action_id,
-        actions: log.actions,
+        actions: log.actions ?? null,
         type: log.type,
         totalAmount: 0,
         logs: []
